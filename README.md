@@ -157,4 +157,3 @@ If you like this project, please ⭐ the repository!
 ```
 firebase serve --only hosting
 ``` 
-  s
