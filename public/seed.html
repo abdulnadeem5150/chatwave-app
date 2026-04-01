@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ChatWave — Seed Demo Users</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg:#0b0f17; --surface:#111827; --surface2:#1a2236;
+      --border:#1e2d42; --accent:#00e5b0; --accent2:#00a87d;
+      --text:#e2edf8; --text2:#6b85a0; --text3:#384d63;
+      --online:#2ecc71; --away:#f1c40f; --busy:#e74c3c;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;}
+    body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background-image:radial-gradient(ellipse at 20% 60%,rgba(0,229,176,.04) 0%,transparent 55%);}
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:40px 36px;width:500px;box-shadow:0 24px 80px rgba(0,0,0,.7);}
+    .brand{display:flex;align-items:center;gap:12px;margin-bottom:30px;}
+    .brand-icon{width:44px;height:44px;background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;}
+    .brand-name{font-size:20px;font-weight:800;letter-spacing:-.5px;}
+    .brand-name em{color:var(--accent);font-style:normal;}
+    h1{font-size:22px;font-weight:800;letter-spacing:-.4px;margin-bottom:8px;}
+    .sub{color:var(--text2);font-size:13px;font-weight:300;margin-bottom:28px;line-height:1.6;}
+    .users-preview{display:flex;flex-direction:column;gap:10px;margin-bottom:28px;}
+    .user-row{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:14px;}
+    .av{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0;position:relative;}
+    .dot{position:absolute;bottom:1px;right:1px;width:10px;height:10px;border-radius:50%;border:2px solid var(--surface2);}
+    .dot.active{background:var(--online);}
+    .dot.away{background:var(--away);}
+    .dot.busy{background:var(--busy);}
+    .uname{font-size:14px;font-weight:700;}
+    .uemail{font-size:11px;color:var(--text2);font-family:'JetBrains Mono',monospace;}
+    .upwd{font-size:11px;color:var(--text3);margin-top:1px;}
+    .btn{width:100%;padding:14px;background:linear-gradient(135deg,var(--accent),var(--accent2));border:none;border-radius:12px;color:#001f17;font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:800;cursor:pointer;transition:opacity .2s,transform .12s;margin-bottom:16px;}
+    .btn:hover{opacity:.9;transform:translateY(-1px);}
+    .btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+    .log-box{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:14px;font-family:'JetBrains Mono',monospace;font-size:12px;min-height:60px;max-height:200px;overflow-y:auto;line-height:1.6;color:var(--text2);}
+    .back-link{display:block;text-align:center;margin-top:16px;color:var(--text2);font-size:13px;text-decoration:none;}
+    .back-link:hover{color:var(--accent);}
+    .warning{background:rgba(241,196,15,.08);border:1px solid rgba(241,196,15,.2);border-radius:10px;padding:10px 14px;font-size:12px;color:#f1c40f;margin-bottom:20px;line-height:1.5;}
+  </style>
+</head>
+<body>
+<div class="card">
+  <div class="brand">
+    <div class="brand-icon">💬</div>
+    <div class="brand-name">Chat<em>Wave</em></div>
+  </div>
+
+  <h1>Add Demo Contacts</h1>
+  <p class="sub">
+    This will create <strong>6 demo users</strong> in your Firebase so you have people to chat with.
+    Each user can also be logged into separately to test real messaging.
+  </p>
+
+  <div class="warning">
+    ⚠️ Run this only <strong>once</strong>. If you run it again it will skip already-created users.
+  </div>
+
+  <div class="users-preview">
+    <div class="user-row">
+      <div class="av" style="background:linear-gradient(135deg,#00c896,#006644)">PS<span class="dot active"></span></div>
+      <div><div class="uname">Priya Sharma</div><div class="uemail">priya@chatwave.app</div><div class="upwd">password: demo1234</div></div>
+    </div>
+    <div class="user-row">
+      <div class="av" style="background:linear-gradient(135deg,#7c3aed,#4c1d95)">AM<span class="dot active"></span></div>
+      <div><div class="uname">Arjun Mehta</div><div class="uemail">arjun@chatwave.app</div><div class="upwd">password: demo1234</div></div>
+    </div>
+    <div class="user-row">
+      <div class="av" style="background:linear-gradient(135deg,#f59e0b,#b45309)">NK<span class="dot away"></span></div>
+      <div><div class="uname">Neha Kapoor</div><div class="uemail">neha@chatwave.app</div><div class="upwd">password: demo1234</div></div>
+    </div>
+    <div class="user-row">
+      <div class="av" style="background:linear-gradient(135deg,#ef4444,#991b1b)">RV<span class="dot busy"></span></div>
+      <div><div class="uname">Rohan Verma</div><div class="uemail">rohan@chatwave.app</div><div class="upwd">password: demo1234</div></div>
+    </div>
+    <div class="user-row">
+      <div class="av" style="background:linear-gradient(135deg,#06b6d4,#164e63)">AK<span class="dot active"></span></div>
+      <div><div class="uname">Aisha Khan</div><div class="uemail">aisha@chatwave.app</div><div class="upwd">password: demo1234</div></div>
+    </div>
+    <div class="user-row">
+      <div class="av" style="background:linear-gradient(135deg,#10b981,#064e3b)">DP<span class="dot active"></span></div>
+      <div><div class="uname">Dev Patel</div><div class="uemail">dev@chatwave.app</div><div class="upwd">password: demo1234</div></div>
+    </div>
+  </div>
+
+  <button class="btn" id="seed-btn" onclick="seedUsers()">🚀 Create All 6 Demo Users</button>
+
+  <div class="log-box" id="log">Waiting to start…</div>
+
+  <a href="/" class="back-link">← Back to ChatWave</a>
+</div>
+
+<script type="module" src="firebase.js"></script>
+<script type="module" src="seed.js"></script>
+</body>
+</html>
