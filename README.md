@@ -10,6 +10,11 @@ A modern real-time chat application built using **Firebase** and **JavaScript**,
 
 ---
 
+## 📲 Install as App on Phone
+Open https://chatwave-36adf.web.app on your phone:
+* Android Chrome → tap ⋮ menu → Add to Home Screen
+* iPhone Safari → tap Share → Add to Home Screen
+
 ## 📌 Features
 
 * 🔐 User Authentication (Login / Register)
@@ -109,6 +114,9 @@ Or use Live Server in VS Code.
 * Start chatting in real-time
 
 ---
+
+
+
 
 ## 📸 Screenshots
 

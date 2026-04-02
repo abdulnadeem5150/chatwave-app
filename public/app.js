@@ -1,6 +1,6 @@
 // ══════════════════════════════════════════
 //  app.js  →  public/app.js
-//  All other features intact
+//  Mobile + Web — slide panel navigation
 // ══════════════════════════════════════════
 
 import { auth, db } from "./firebase.js";
@@ -17,9 +17,8 @@ import {
 
 // ── STATE ──
 let currentUser=null, activeChat=null, unsubMsgs=null, unsubUsers=null;
-let unsubTyping=null, allUsers=[], callTimer=null;
-let callSeconds=0, isMuted=false, typingTimeout=null;
-let currentTab='chats', unreadCounts={}, sharedImages=[];
+let unsubTyping=null, allUsers=[], callTimer=null, callSeconds=0;
+let isMuted=false, typingTimeout=null, currentTab='chats', unreadCounts={};
 
 // ── UTILS ──
 const getChatId   = (a,b)  => [a,b].sort().join('_');
@@ -29,34 +28,60 @@ const COLORS      = ['#00c896','#7c3aed','#f59e0b','#ef4444','#06b6d4','#10b981'
 const uidColor    = (uid)  => COLORS[(uid||'a').charCodeAt(0)%COLORS.length];
 const fmtTime     = (ts)   => { if(!ts)return''; try{const d=ts.toDate?ts.toDate():new Date(ts);return d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});}catch(e){return'';} };
 const fmtDate     = (ts)   => { if(!ts)return'Today'; try{const d=ts.toDate?ts.toDate():new Date(ts);return d.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'});}catch(e){return'Today';} };
-const val         = (id)   => document.getElementById(id)?.value||'';
+const isMobile    = ()     => window.innerWidth < 900;
 const el          = (id)   => document.getElementById(id);
+const val         = (id)   => el(id)?.value||'';
 
 function toast(msg,type='info'){
   const t=document.createElement('div');
   t.className=`toast toast-${type}`;t.textContent=msg;
   document.body.appendChild(t);
   requestAnimationFrame(()=>t.classList.add('show'));
-  setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),300);},3500);
+  setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),300);},3200);
 }
 function setBtnLoading(id,on){
   const b=el(id);if(!b)return;
   b.disabled=on;b.textContent=on?'Please wait…':b.dataset.label;
 }
 function friendlyErr(e){
-  const m={
-    'auth/email-already-in-use':'Email already registered.',
-    'auth/invalid-email':'Invalid email.',
-    'auth/user-not-found':'No account found.',
-    'auth/wrong-password':'Wrong password.',
-    'auth/invalid-credential':'Wrong email or password.',
-    'auth/weak-password':'Password needs 6+ chars.',
-    'auth/too-many-requests':'Too many attempts. Try later.',
-  };
+  const m={'auth/email-already-in-use':'Email already registered.','auth/invalid-email':'Invalid email.','auth/user-not-found':'No account found.','auth/wrong-password':'Wrong password.','auth/invalid-credential':'Wrong email or password.','auth/weak-password':'Password needs 6+ chars.','auth/too-many-requests':'Too many attempts. Try later.'};
   return m[e.code]||e.message;
 }
 
-// ── AUTH STATE ──
+
+// ══════════════════════════════════════════
+//  MOBILE NAVIGATION — slide panels
+// ══════════════════════════════════════════
+function showChatPanel() {
+  if (!isMobile()) return;
+
+  el('sidebar').classList.add('hidden');     // hide sidebar
+  el('chat-main').classList.add('visible');  // show chat
+}
+
+function showSidebarPanel() {
+  if (!isMobile()) return;
+
+  el('sidebar').classList.remove('hidden');
+  el('chat-main').classList.remove('visible');
+}
+
+// Back button handler
+window.goBackToSidebar = () => {
+  showSidebarPanel();
+};
+
+// Handle Android back button
+window.addEventListener('popstate', () => {
+  if (isMobile() && el('chat-main').classList.contains('visible')) {
+    showSidebarPanel();
+  }
+});
+
+
+// ══════════════════════════════════════════
+//  AUTH STATE
+// ══════════════════════════════════════════
 onAuthStateChanged(auth, async (user) => {
   if(user){
     currentUser=user;
@@ -78,7 +103,10 @@ async function ensureUserDoc(user){
   }catch(e){console.warn('ensureUserDoc:',e);}
 }
 
-// ── REGISTER ──
+
+// ══════════════════════════════════════════
+//  REGISTER / LOGIN / LOGOUT
+// ══════════════════════════════════════════
 window.doRegister=async()=>{
   const name=val('reg-name').trim(),email=val('reg-email').trim(),pass=val('reg-pass');
   if(!name||!email||!pass)return toast('Fill all fields','warn');
@@ -87,33 +115,29 @@ window.doRegister=async()=>{
   try{
     const cred=await createUserWithEmailAndPassword(auth,email,pass);
     await updateProfile(cred.user,{displayName:name});
-    await setDoc(doc(db,'users',cred.user.uid),{
-      uid:cred.user.uid,name,email,online:true,status:'active',
-      lastSeen:serverTimestamp(),createdAt:serverTimestamp()
-    });
+    await setDoc(doc(db,'users',cred.user.uid),{uid:cred.user.uid,name,email,online:true,status:'active',lastSeen:serverTimestamp(),createdAt:serverTimestamp()});
     toast('Welcome to ChatWave! 🎉','success');
   }catch(e){toast(friendlyErr(e),'error');}
   setBtnLoading('btn-register',false);
 };
 
-// ── LOGIN ──
 window.doLogin=async()=>{
   const email=val('log-email').trim(),pass=val('log-pass');
   if(!email||!pass)return toast('Fill all fields','warn');
   setBtnLoading('btn-login',true);
-  try{
-    await signInWithEmailAndPassword(auth,email,pass);
-    toast('Welcome back! 👋','success');
-  }catch(e){toast(friendlyErr(e),'error');}
+  try{await signInWithEmailAndPassword(auth,email,pass);toast('Welcome back! 👋','success');}
+  catch(e){toast(friendlyErr(e),'error');}
   setBtnLoading('btn-login',false);
 };
 
-// ── LOGOUT ──
 window.doLogout=async()=>{
   await setPresence(false);teardown();await signOut(auth);toast('Logged out 👋');
 };
 
-// ── PRESENCE ──
+
+// ══════════════════════════════════════════
+//  PRESENCE
+// ══════════════════════════════════════════
 async function setPresence(online){
   if(!currentUser)return;
   try{await updateDoc(doc(db,'users',currentUser.uid),{online,lastSeen:serverTimestamp()});}catch(_){}
@@ -122,9 +146,13 @@ function startPresence(){
   setPresence(true);
   document.addEventListener('visibilitychange',()=>setPresence(!document.hidden));
   window.addEventListener('beforeunload',()=>setPresence(false));
+  window.addEventListener('pagehide',()=>setPresence(false));
 }
 
-// ── INIT ──
+
+// ══════════════════════════════════════════
+//  INIT / TEARDOWN
+// ══════════════════════════════════════════
 function initApp(){showAppScreen();startPresence();loadUsers();}
 function teardown(){
   unsubMsgs?.();unsubUsers?.();unsubTyping?.();
@@ -132,10 +160,18 @@ function teardown(){
   activeChat=null;allUsers=[];unreadCounts={};
 }
 
-// ── SCREENS ──
-function showAuthScreen(){el('auth-screen').style.display='flex';el('app-screen').style.display='none';showLogin();}
+
+// ══════════════════════════════════════════
+//  SCREENS
+// ══════════════════════════════════════════
+function showAuthScreen(){
+  el('auth-screen').style.display='flex';
+  el('app-screen').style.display='none';
+  showLogin();
+}
 function showAppScreen(){
-  el('auth-screen').style.display='none';el('app-screen').style.display='flex';
+  el('auth-screen').style.display='none';
+  el('app-screen').style.display='flex';
   const name=currentUser.displayName||currentUser.email.split('@')[0];
   el('my-name').textContent=name.split(' ')[0];
   const av=el('my-avatar');
@@ -145,7 +181,10 @@ function showAppScreen(){
 window.showLogin=()=>{el('pg-login').style.display='flex';el('pg-register').style.display='none';};
 window.showRegister=()=>{el('pg-login').style.display='none';el('pg-register').style.display='flex';};
 
-// ── TABS ──
+
+// ══════════════════════════════════════════
+//  TABS
+// ══════════════════════════════════════════
 window.switchTab=(tab,btn)=>{
   currentTab=tab;
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
@@ -156,7 +195,10 @@ window.switchTab=(tab,btn)=>{
 };
 window.onSearch=()=>renderList();
 
-// ── LOAD USERS ──
+
+// ══════════════════════════════════════════
+//  LOAD USERS
+// ══════════════════════════════════════════
 async function loadUsers(){
   el('chat-list').innerHTML='<div class="empty-list">Loading contacts…</div>';
   el('contacts-list').innerHTML='<div class="empty-list">Loading contacts…</div>';
@@ -178,7 +220,10 @@ async function loadUsers(){
   });
 }
 
-// ── RENDER LIST ──
+
+// ══════════════════════════════════════════
+//  RENDER LISTS
+// ══════════════════════════════════════════
 function renderList(){
   const filter=(el('search-input')?.value||'').toLowerCase().trim();
   const filtered=allUsers.filter(u=>(u.name||'').toLowerCase().includes(filter)||(u.email||'').toLowerCase().includes(filter));
@@ -189,7 +234,7 @@ function renderList(){
 function renderChatList(users){
   const list=el('chat-list');list.innerHTML='';
   if(!users.length){
-    list.innerHTML=`<div class="empty-list"><div style="font-size:36px;margin-bottom:10px">👥</div><div style="font-weight:600;color:var(--text2);margin-bottom:6px">No contacts yet</div><div style="font-size:12px">Go to <a href="/seed.html" style="color:var(--accent);font-weight:600">/seed.html</a> to add demo users</div></div>`;
+    list.innerHTML=`<div class="empty-list"><div style="font-size:40px;margin-bottom:10px">👥</div><div style="font-weight:700;color:var(--text2);margin-bottom:6px;font-size:15px">No contacts yet</div><div style="font-size:13px;line-height:1.7">Visit <a href="/seed.html" style="color:var(--accent);font-weight:600">/seed.html</a><br/>to add demo users</div></div>`;
     return;
   }
   users.forEach(u=>{
@@ -200,7 +245,7 @@ function renderChatList(users){
     div.className='chat-item'+(isActive?' active':'');
     div.onclick=()=>openChat(u);
     div.innerHTML=`
-      <div class="avatar md" style="background:${uidColor(u.uid)};color:#fff;font-weight:800;font-size:13px;">
+      <div class="avatar md" style="background:${uidColor(u.uid)};color:#fff;font-weight:800;font-size:15px">
         ${getInitials(u.name)}<span class="pdot ${dot}"></span>
       </div>
       <div class="chat-item-info">
@@ -208,9 +253,9 @@ function renderChatList(users){
           <span class="chat-item-name">${escHtml(u.name)}</span>
           <span class="chat-item-time" id="lt-${u.uid}"></span>
         </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:4px">
-          <span class="chat-item-preview" id="lm-${u.uid}">${u.online?'<span style="color:var(--accent);font-size:11px">● online</span>':'<span style="color:var(--text3);font-size:11px">offline</span>'}</span>
-          ${unread}
+        <div class="chat-item-bottom">
+        <span class="chat-item-preview" id="lm-${u.uid}">...</span>
+         ${unread}
         </div>
       </div>`;
     list.appendChild(div);
@@ -221,7 +266,7 @@ function renderChatList(users){
 function renderContactsList(users){
   const list=el('contacts-list');list.innerHTML='';
   if(!users.length){
-    list.innerHTML=`<div class="empty-list"><div style="font-size:36px;margin-bottom:10px">👥</div><div style="font-weight:600;color:var(--text2)">No people found</div></div>`;
+    list.innerHTML=`<div class="empty-list"><div style="font-size:40px;margin-bottom:10px">👥</div><div style="font-weight:700;color:var(--text2)">No people found</div></div>`;
     return;
   }
   users.forEach(u=>{
@@ -230,15 +275,15 @@ function renderContactsList(users){
     const div=document.createElement('div');
     div.className='chat-item';div.onclick=()=>openChat(u);
     div.innerHTML=`
-      <div class="avatar md" style="background:${uidColor(u.uid)};color:#fff;font-weight:800;font-size:13px;">
+      <div class="avatar md" style="background:${uidColor(u.uid)};color:#fff;font-weight:800;font-size:15px">
         ${getInitials(u.name)}<span class="pdot ${dot}"></span>
       </div>
       <div class="chat-item-info">
         <div class="chat-item-top">
           <span class="chat-item-name">${escHtml(u.name)}</span>
-          <span class="chat-item-time" style="font-size:11px">${stText}</span>
+          <span class="chat-item-time" style="font-size:12px">${stText}</span>
         </div>
-        <span class="chat-item-preview" style="font-size:11px">${escHtml(u.email||'')}</span>
+        <span class="chat-item-preview" style="font-size:12px">${escHtml(u.email||'')}</span>
       </div>`;
     list.appendChild(div);
   });
@@ -251,33 +296,45 @@ function listenLastMsg(uid){
     if(snap.empty)return;
     const d=snap.docs[0].data();
     const lm=el(`lm-${uid}`),lt=el(`lt-${uid}`);
-    const preview=d.text?(d.text.length>30?d.text.slice(0,30)+'…':d.text):'📎 File';
+    const preview=d.text?(d.text.length>32?d.text.slice(0,32)+'…':d.text):'📎 File';
     if(lm)lm.textContent=preview;
     if(lt)lt.textContent=fmtTime(d.createdAt);
     if(activeChat?.uid!==uid&&d.senderId!==currentUser.uid)unreadCounts[uid]=(unreadCounts[uid]||0)+1;
   });
 }
 
-// ── OPEN CHAT ──
+
+// ══════════════════════════════════════════
+//  OPEN CHAT
+// ══════════════════════════════════════════
 function openChat(user){
   activeChat=user;unreadCounts[user.uid]=0;renderList();
   updateChatHeader(user);
+
   el('empty-view').style.display='none';
   el('chat-view').style.display='flex';
   el('info-panel').style.display='none';
-  el('msg-input').focus();
+
+  // Mobile: slide to chat panel
+  showChatPanel();
+  // Push history state for back button
+  history.pushState({chat:user.uid},'');
+
+  setTimeout(()=>el('msg-input').focus(),300);
+
   unsubMsgs?.();unsubTyping?.();
-  sharedImages=[];
+
   const chatId=getChatId(currentUser.uid,user.uid);
   const q=query(collection(db,'chats',chatId,'messages'),orderBy('createdAt'));
   unsubMsgs=onSnapshot(q,snap=>{
-    const area=el('messages-area');area.innerHTML='';let lastDate='';sharedImages=[];
+    const area=el('messages-area');area.innerHTML='';let lastDate='';
     snap.forEach(docSnap=>{
       const msg=docSnap.data(),date=fmtDate(msg.createdAt);
       if(date!==lastDate){lastDate=date;const dl=document.createElement('div');dl.className='date-divider';dl.innerHTML=`<span>${date}</span>`;area.appendChild(dl);}
       area.appendChild(buildMsgEl(msg));
     });
-    area.scrollTop=area.scrollHeight;unreadCounts[user.uid]=0;
+    area.scrollTop=area.scrollHeight;
+    unreadCounts[user.uid]=0;
   });
   listenTyping(chatId,user.uid);
 }
@@ -286,7 +343,7 @@ function updateChatHeader(user){
   activeChat=user;
   const av=el('chat-av');if(!av)return;
   const dot=user.online?(user.status||'active'):'offline';
-  av.style.background=uidColor(user.uid);av.style.color='#fff';av.style.fontWeight='800';av.style.fontSize='13px';
+  av.style.background=uidColor(user.uid);av.style.color='#fff';av.style.fontWeight='800';av.style.fontSize='15px';
   av.innerHTML=getInitials(user.name)+`<span class="pdot ${dot}"></span>`;
   el('chat-name').textContent=user.name;
   const st=el('chat-status');
@@ -305,7 +362,10 @@ function buildMsgEl(msg){
   return div;
 }
 
-// ── SEND ──
+
+// ══════════════════════════════════════════
+//  SEND MESSAGE
+// ══════════════════════════════════════════
 window.sendMessage=async()=>{
   const input=el('msg-input'),text=input.value.trim();
   if(!text||!activeChat)return;
@@ -325,14 +385,21 @@ window.sendMessage=async()=>{
   }catch(e){console.error('sendMessage:',e);toast('Failed to send','error');input.value=text;}
 };
 
-window.handleKey=(e)=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}};
+window.handleKey=(e)=>{
+  // On mobile, Enter adds newline. On desktop, Enter sends.
+  if(e.key==='Enter'&&!e.shiftKey&&!isMobile()){e.preventDefault();sendMessage();}
+};
+
 window.handleTyping=(textarea)=>{
   textarea.style.height='46px';
-  textarea.style.height=Math.min(textarea.scrollHeight,130)+'px';
+  textarea.style.height=Math.min(textarea.scrollHeight,120)+'px';
   sendTypingSignal();
 };
 
-// ── TYPING ──
+
+// ══════════════════════════════════════════
+//  TYPING INDICATOR
+// ══════════════════════════════════════════
 async function sendTypingSignal(){
   if(!activeChat)return;
   const chatId=getChatId(currentUser.uid,activeChat.uid);
@@ -356,7 +423,10 @@ function listenTyping(chatId,otherUid){
   });
 }
 
-// ── EMOJI ──
+
+// ══════════════════════════════════════════
+//  EMOJI
+// ══════════════════════════════════════════
 window.toggleEmoji=()=>{
   const picker=el('emoji-picker');
   if(picker.classList.contains('open')){picker.classList.remove('open');return;}
@@ -365,16 +435,21 @@ window.toggleEmoji=()=>{
   picker.classList.add('open');
 };
 window.insertEmoji=(emoji)=>{
-  const input=el('msg-input'),pos=input.selectionStart||0;
+  const input=el('msg-input'),pos=input.selectionStart||input.value.length;
   input.value=input.value.slice(0,pos)+emoji+input.value.slice(pos);
-  input.selectionStart=input.selectionEnd=pos+emoji.length;input.focus();
+  input.selectionStart=input.selectionEnd=pos+emoji.length;
+  input.focus();
+  picker?.classList.remove('open');
 };
 document.addEventListener('click',e=>{
   const picker=el('emoji-picker');if(!picker)return;
   if(!picker.contains(e.target)&&!e.target.closest('.emoji-btn'))picker.classList.remove('open');
 });
 
-// ── CALL ──
+
+// ══════════════════════════════════════════
+//  CALL MODAL
+// ══════════════════════════════════════════
 window.startCall=(type)=>{
   if(!activeChat)return;
   const av=el('call-av');av.style.background=uidColor(activeChat.uid);av.textContent=getInitials(activeChat.name);
@@ -391,7 +466,10 @@ window.endCall=()=>{clearInterval(callTimer);el('call-modal').style.display='non
 window.toggleMute=()=>{isMuted=!isMuted;el('call-mute-btn').textContent=isMuted?'🔇':'🎤';el('call-mute-btn').classList.toggle('active',isMuted);};
 window.toggleSpeaker=()=>{const btn=el('call-speaker-btn');btn.classList.toggle('active');btn.textContent=btn.classList.contains('active')?'🔈':'🔊';};
 
-// ── INFO PANEL ──
+
+// ══════════════════════════════════════════
+//  INFO PANEL
+// ══════════════════════════════════════════
 window.toggleChatInfo=()=>{
   const panel=el('info-panel');
   if(panel.style.display==='none'||!panel.style.display){
@@ -399,12 +477,15 @@ window.toggleChatInfo=()=>{
     const av=el('info-av');av.style.background=uidColor(activeChat.uid);av.textContent=getInitials(activeChat.name);
     el('info-name').textContent=activeChat.name;el('info-email').textContent=activeChat.email||'';
     el('info-online').textContent=activeChat.online?'Online now':'Offline';
-    el('shared-media').innerHTML='<div style="color:var(--text3);font-size:13px;padding:8px 0">File sharing disabled</div>';
     panel.style.display='flex';
+    if(isMobile())history.pushState({info:true},'');
   } else {panel.style.display='none';}
 };
 
-// ── PROFILE ──
+
+// ══════════════════════════════════════════
+//  PROFILE MODAL
+// ══════════════════════════════════════════
 window.openProfileModal=()=>{
   const name=currentUser.displayName||'';
   const av=el('profile-av');av.style.background=uidColor(currentUser.uid);av.textContent=getInitials(name);
@@ -423,6 +504,21 @@ window.saveProfile=async()=>{
   }catch(e){toast('Update failed','error');}
 };
 
-// ── IMAGE VIEWER ──
+
+// ══════════════════════════════════════════
+//  IMAGE VIEWER
+// ══════════════════════════════════════════
 window.openImgModal=(url)=>{el('img-viewer-src').src=url;el('img-modal').style.display='flex';};
 window.closeImgModal=()=>{el('img-modal').style.display='none';el('img-viewer-src').src='';};
+
+
+// ══════════════════════════════════════════
+//  KEYBOARD HANDLING (mobile)
+//  Scroll messages up when keyboard appears
+// ══════════════════════════════════════════
+if ('visualViewport' in window) {
+  window.visualViewport.addEventListener('resize', () => {
+    const area = el('messages-area');
+    if (area) area.scrollTop = area.scrollHeight;
+  });
+}
