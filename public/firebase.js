@@ -8,12 +8,12 @@ import { getAuth }        from "https://www.gstatic.com/firebasejs/10.12.0/fireb
 import { getFirestore }   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey:            "AIzaSyDc_oXk-4ChaWOjTLojDfAZ945diBp8KtI",
-  authDomain:        "chatwave-36adf.firebaseapp.com",
-  projectId:         "chatwave-36adf",
-  storageBucket:     "chatwave-36adf.firebasestorage.app",
-  messagingSenderId: "882972475400",
-  appId:             "1:882972475400:web:97b77769eb9ca6e8d2d1bd"
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT_ID.appspot.com",
+  messagingSenderId: "XXXX",
+  appId: "XXXX"
 };
 
 const app  = initializeApp(firebaseConfig);
